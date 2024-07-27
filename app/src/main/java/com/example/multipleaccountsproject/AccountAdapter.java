@@ -38,7 +38,7 @@ public class AccountAdapter extends RecyclerView.Adapter {
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
-        if (position==0){
+        if (holder.getItemViewType() == UPILITE_ACCOUNT_VIEW){
             if (accountArrayList.get(position) instanceof Account)
                 ((UpiLiteAccountViewHolder) holder).Bind((Account) accountArrayList.get(position));
         }else {

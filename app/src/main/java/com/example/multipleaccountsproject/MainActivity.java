@@ -41,10 +41,13 @@ public class MainActivity extends AppCompatActivity {
     void LoadData()
     {
 
+
         Account upiLiteAccount = new Account();
-        upiLiteAccount.setAccountName("sbi upi lite Account");
+        upiLiteAccount.setAccountName("sbiliteaccoujnt");
         upiLiteAccount.setIsUpiLiteEnabled("Y");
         accountArrayList.add(upiLiteAccount);
+
+
 
         for(int i=0; i<5;i++)
         {
