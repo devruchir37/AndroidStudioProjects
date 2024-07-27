@@ -16,6 +16,7 @@
         android:orientation="horizontal">
 
     <Button
+        android:id="@+id/withlite"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="With Upi Lite"
@@ -26,6 +27,7 @@
 
 
     <Button
+        android:id="@+id/withoutlite"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Without Upi Lite"

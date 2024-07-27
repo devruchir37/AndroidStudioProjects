@@ -1,6 +1,8 @@
 package com.example.multipleaccountsproject;
 
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,7 +18,8 @@ public class MainActivity extends AppCompatActivity {
 
     RecyclerView recyclerView;
     AccountAdapter accountAdapter;
-    ArrayList<Account> accountArrayList= new ArrayList<>();
+    ArrayList<Account> accountArrayList = new ArrayList<>();
+    Button withlite, withoutlite;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,9 +28,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         LoadData();
-        recyclerView=findViewById(R.id.recycler);
-        accountAdapter=new AccountAdapter(accountArrayList);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this,RecyclerView.VERTICAL,false));
+        recyclerView = findViewById(R.id.recycler);
+        withlite = findViewById(R.id.withlite);
+        withoutlite = findViewById(R.id.withoutlite);
+        accountAdapter = new AccountAdapter(accountArrayList);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
         recyclerView.setAdapter(accountAdapter);
 
 
@@ -36,10 +41,25 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        withoutlite.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                accountAdapter.updateSelection(1);
+            }
+        });
+
+
+        withlite.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                accountAdapter.updateSelection(0);
+            }
+        });
+
     }
 
-    void LoadData()
-    {
+    void LoadData() {
 
 
         Account upiLiteAccount = new Account();
@@ -48,11 +68,9 @@ public class MainActivity extends AppCompatActivity {
         accountArrayList.add(upiLiteAccount);
 
 
-
-        for(int i=0; i<5;i++)
-        {
-            Account account=new Account();
-            account.setAccountName("SBI"+i);
+        for (int i = 0; i < 5; i++) {
+            Account account = new Account();
+            account.setAccountName("SBI" + i);
             account.setIsUpiLiteEnabled("N");
             accountArrayList.add(account);
         }
