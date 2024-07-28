@@ -74,6 +74,13 @@ public class AccountAdapter extends RecyclerView.Adapter {
         });
     }
 
+    public Account getSelectedAccount() {
+        if (lastSelectedPosition >= 0 && lastSelectedPosition < accountArrayList.size()) {
+            return accountArrayList.get(lastSelectedPosition);
+        }
+        return null;
+    }
+
     public class NormalAccountViewHolder extends RecyclerView.ViewHolder {
         TextView accountName;
         RadioButton normalAccountRadioButton;

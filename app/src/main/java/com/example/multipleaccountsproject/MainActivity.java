@@ -1,6 +1,7 @@
 package com.example.multipleaccountsproject;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
@@ -19,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView recyclerView;
     AccountAdapter accountAdapter;
     ArrayList<Account> accountArrayList = new ArrayList<>();
-    Button withlite, withoutlite;
+    Button withlite, withoutlite,submitBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recycler);
         withlite = findViewById(R.id.withlite);
         withoutlite = findViewById(R.id.withoutlite);
+        submitBtn = findViewById(R.id.submitBtn);
         accountAdapter = new AccountAdapter(accountArrayList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
         recyclerView.setAdapter(accountAdapter);
@@ -56,6 +58,12 @@ public class MainActivity extends AppCompatActivity {
                 accountAdapter.updateSelection(0);
             }
         });
+        submitBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getSelectedAccount();
+            }
+        });
 
     }
 
@@ -76,5 +84,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+    }
+
+
+    private void getSelectedAccount(){
+        Account selectedAccount = accountAdapter.getSelectedAccount();
+        if (selectedAccount != null) {
+            // Use the selected account object
+            String accountName = selectedAccount.getAccountName();
+            // Do something with the selected account
+            Log.d("selectedAccount",accountName);
+        }
     }
 }
