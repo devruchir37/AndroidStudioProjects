@@ -18,21 +18,28 @@
         android:theme="@style/Theme.MultipleAccountsProject"
         tools:targetApi="31">
         <activity
-            android:name=".AutoZoomOld.AutoZoomOld"
+            android:name=".IotManageActivity"
             android:exported="true">
+
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+        </activity>
+        <activity
+            android:name=".AutoZoomOld.AutoZoomOld"
+            android:exported="false">
+
         </activity>
         <activity
             android:name=".AutoZoom.AutoZoomActivity"
-            android:exported="false">
-        </activity>
+            android:exported="false"></activity>
         <activity
             android:name=".MainActivity"
-            android:exported="false"></activity>
+            android:exported="false" />
     </application>
 
 </manifest>
