@@ -6,6 +6,9 @@
 
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
+
 
     <application
         android:allowBackup="true"
@@ -17,7 +20,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MultipleAccountsProject"
         tools:targetApi="31">
-        <activity
+     <!--   <activity
             android:name=".IotManageActivity"
             android:exported="true">
 
@@ -28,7 +31,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-        </activity>
+        </activity>-->
         <activity
             android:name=".AutoZoomOld.AutoZoomOld"
             android:exported="false">
@@ -39,7 +42,39 @@
             android:exported="false"></activity>
         <activity
             android:name=".MainActivity"
-            android:exported="false" />
+            android:exported="false">
+
+            <!--<intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>-->
+
+        </activity>
+
+        <activity
+            android:name=".ActivityA"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <activity
+            android:name=".ActivityB"
+            android:exported="false">
+
+         <!--   <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>-->
+
+        </activity>
     </application>
 
 </manifest>

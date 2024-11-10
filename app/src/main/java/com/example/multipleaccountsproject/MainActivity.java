@@ -1,99 +1,216 @@
 package com.example.multipleaccountsproject;
 
 import android.os.Bundle;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+import android.util.Base64;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import java.util.concurrent.Executor;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 
 public class MainActivity extends AppCompatActivity {
 
-    RecyclerView recyclerView;
-    AccountAdapter accountAdapter;
-    ArrayList<Account> accountArrayList = new ArrayList<>();
-    Button withlite, withoutlite,submitBtn;
+    private static final String KEY_ALIAS = "myKeyAlias";  // Keystore alias for the encryption key
+    private static final String TRANSFORMATION = "AES/GCM/NoPadding";  // Encryption algorithm and padding scheme
+    private Cipher cipher;
+
+    private EditText editText1, editText2;
+    private Button encryptButton, decryptButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        LoadData();
-        recyclerView = findViewById(R.id.recycler);
-        withlite = findViewById(R.id.withlite);
-        withoutlite = findViewById(R.id.withoutlite);
-        submitBtn = findViewById(R.id.submitBtn);
-        accountAdapter = new AccountAdapter(accountArrayList);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
-        recyclerView.setAdapter(accountAdapter);
+        // Initialize EditText and Buttons
+        editText1 = findViewById(R.id.editText1);
+        editText2 = findViewById(R.id.editText2);
+        encryptButton = findViewById(R.id.encryptButton);
+        decryptButton = findViewById(R.id.decryptButton);
 
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
-
-        withoutlite.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                accountAdapter.updateSelection(1);
-            }
-        });
-
-
-        withlite.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                accountAdapter.updateSelection(0);
-            }
-        });
-        submitBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                getSelectedAccount();
-            }
-        });
-
+        // Set click listeners for buttons
+        encryptButton.setOnClickListener(v -> encryptAndSaveData());
+        decryptButton.setOnClickListener(v -> decryptData());
     }
 
-    void LoadData() {
+    // Generate or retrieve the key from Keystore
+    private SecretKey getKey() throws Exception {
+        KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
+        keyStore.load(null);  // Load the keystore
 
-
-        Account upiLiteAccount = new Account();
-        upiLiteAccount.setAccountName("sbiliteaccoujnt");
-        upiLiteAccount.setIsUpiLiteEnabled("Y");
-        accountArrayList.add(upiLiteAccount);
-
-
-        for (int i = 0; i < 5; i++) {
-            Account account = new Account();
-            account.setAccountName("SBI" + i);
-            account.setIsUpiLiteEnabled("N");
-            accountArrayList.add(account);
+        // Retrieve the key if it exists, otherwise generate a new key
+        SecretKey key = (SecretKey) keyStore.getKey(KEY_ALIAS, null);
+        if (key == null) {
+            // Generate key if not present in the keystore
+            KeyGenerator keyGenerator = KeyGenerator.getInstance("AES", "AndroidKeyStore");
+            keyGenerator.init(
+                    new KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                            .build());
+            key = keyGenerator.generateKey();
         }
-
-
+        return key;
     }
 
+    // Encrypt a string with AES/GCM and return the ciphertext and IV
+    private byte[] encryptString(String input) throws Exception {
+        cipher = Cipher.getInstance(TRANSFORMATION);  // Initialize cipher for AES/GCM
 
-    private void getSelectedAccount(){
-        Account selectedAccount = accountAdapter.getSelectedAccount();
-        if (selectedAccount != null) {
-            // Use the selected account object
-            String accountName = selectedAccount.getAccountName();
-            // Do something with the selected account
-            Log.d("selectedAccount",accountName);
+        // Generate a new IV for each encryption operation
+        cipher.init(Cipher.ENCRYPT_MODE, getKey());
+
+        // Generate the IV from the cipher's state (it is automatically generated when init is called)
+        byte[] iv = cipher.getIV();  // Get the IV generated by the cipher
+
+        // Encrypt the string
+        byte[] encryptedData = cipher.doFinal(input.getBytes(StandardCharsets.UTF_8));
+
+        // Combine IV and encrypted data into one byte array for storage
+        byte[] combined = new byte[iv.length + encryptedData.length];
+        System.arraycopy(iv, 0, combined, 0, iv.length);
+        System.arraycopy(encryptedData, 0, combined, iv.length, encryptedData.length);
+
+        return combined;
+    }
+
+    // Convert byte array to Base64 for easy storage or sharing
+    private String byteArrayToBase64(byte[] input) {
+        return Base64.encodeToString(input, Base64.DEFAULT);
+    }
+
+    // Decrypt the string using the stored IV and ciphertext
+    private String decryptString(byte[] encryptedData) throws Exception {
+        // Extract the IV and the ciphertext from the combined byte array
+        byte[] iv = new byte[12];  // GCM requires a 12-byte IV
+        byte[] ciphertext = new byte[encryptedData.length - iv.length];
+
+        System.arraycopy(encryptedData, 0, iv, 0, iv.length);
+        System.arraycopy(encryptedData, iv.length, ciphertext, 0, ciphertext.length);
+
+        // Initialize the cipher for decryption using the extracted IV
+        cipher = Cipher.getInstance(TRANSFORMATION);
+        cipher.init(Cipher.DECRYPT_MODE, getKey(), new GCMParameterSpec(128, iv));  // 128-bit authentication tag size
+
+        // Decrypt the ciphertext
+        byte[] decryptedData = cipher.doFinal(ciphertext);
+
+        // Convert decrypted data back to a string
+        return new String(decryptedData, StandardCharsets.UTF_8);
+    }
+
+    // Encrypt and save the data (store as Base64 string)
+    private void encryptAndSaveData() {
+        String input1 = editText1.getText().toString();
+        String input2 = editText2.getText().toString();
+
+        try {
+            byte[] encryptedInput1 = encryptString(input1);
+            byte[] encryptedInput2 = encryptString(input2);
+
+            // Convert encrypted data to Base64 for storage
+            String base64Input1 = byteArrayToBase64(encryptedInput1);
+            String base64Input2 = byteArrayToBase64(encryptedInput2);
+
+            // Save encrypted data to SharedPreferences (or any other storage)
+            getSharedPreferences("biometric_data", MODE_PRIVATE)
+                    .edit()
+                    .putString("encrypted_string_1", base64Input1)
+                    .putString("encrypted_string_2", base64Input2)
+                    .apply();
+
+            // Show encrypted data in Toast for demonstration purposes
+            Toast.makeText(this, "Encrypted String 1: " + base64Input1, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Encrypted String 2: " + base64Input2, Toast.LENGTH_LONG).show();
+
+
+            Log.wtf("Encrypted String 1","Encrypted String 1: " + base64Input1);
+            Log.wtf("Encrypted String 2","Encrypted String 2: " + base64Input2);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Encryption failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Decrypt and show the data using biometric authentication
+    private void decryptData() {
+        Executor executor = ContextCompat.getMainExecutor(this);
+        BiometricPrompt biometricPrompt = new BiometricPrompt(this, executor, new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                decryptAndShowData();
+            }
+
+            @Override
+            public void onAuthenticationError(int errorCode, CharSequence errString) {
+                super.onAuthenticationError(errorCode, errString);
+                Toast.makeText(MainActivity.this, "Authentication Error: " + errString, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAuthenticationFailed() {
+                super.onAuthenticationFailed();
+                Toast.makeText(MainActivity.this, "Authentication Failed", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Biometric Authentication")
+                .setSubtitle("Please authenticate to perform the action")
+                .setNegativeButtonText("Cancel")
+                .build();
+
+        biometricPrompt.authenticate(promptInfo);
+    }
+
+    // Decrypt the data and show the result after successful biometric authentication
+    private void decryptAndShowData() {
+        try {
+            // Retrieve encrypted data from SharedPreferences
+            String encryptedString1Base64 = getSharedPreferences("biometric_data", MODE_PRIVATE)
+                    .getString("encrypted_string_1", null);
+            String encryptedString2Base64 = getSharedPreferences("biometric_data", MODE_PRIVATE)
+                    .getString("encrypted_string_2", null);
+
+            if (encryptedString1Base64 == null || encryptedString2Base64 == null) {
+                Toast.makeText(this, "No encrypted data found", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Decode the Base64 encoded data to byte array
+            byte[] encryptedString1 = Base64.decode(encryptedString1Base64, Base64.DEFAULT);
+            byte[] encryptedString2 = Base64.decode(encryptedString2Base64, Base64.DEFAULT);
+
+            // Decrypt both strings
+            String decryptedString1 = decryptString(encryptedString1);
+            String decryptedString2 = decryptString(encryptedString2);
+
+            // Show decrypted data in Toast
+            Toast.makeText(this, "Decrypted String 1: " + decryptedString1, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Decrypted String 2: " + decryptedString2, Toast.LENGTH_LONG).show();
+
+            Log.wtf("Decrypted String 1:","Decrypted String 1: " + decryptedString1);
+            Log.wtf("Decrypted String 2:","Decrypted String 2: " + decryptedString2);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Decryption failed", Toast.LENGTH_SHORT).show();
         }
     }
 }

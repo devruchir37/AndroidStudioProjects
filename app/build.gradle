@@ -45,6 +45,9 @@ dependencies {
     implementation 'androidx.camera:camera-view:1.0.0-alpha32'
     implementation 'com.google.mlkit:barcode-scanning:17.0.0'
 
+    implementation 'androidx.security:security-crypto:1.0.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+
 
 /*    implementation 'com.google.android.gms:play-services-mlkit-barcode-scanning:18.0.0'
     implementation 'androidx.camera:camera-core:1.0.2'
