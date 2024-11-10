@@ -2,8 +2,6 @@ package com.example.multipleaccountsproject;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
 import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
@@ -14,24 +12,20 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.IntentCompat;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKeys;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.security.KeyStore;
+
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.util.concurrent.Executor;
 
 public class ActivityA extends AppCompatActivity {
 
-    private static final String KEY_ALIAS = "myKeyAlias";
-    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
+
     private EditText editTextA;
     private Button encryptButtonA, decryptButtonA,nextActivity;
     TextView encryptedData;
@@ -90,49 +84,18 @@ public class ActivityA extends AppCompatActivity {
     }
 
     // Method to generate or retrieve the secret key from Keystore
-    private SecretKey getKey() throws Exception {
-        KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
-        keyStore.load(null);
 
-        SecretKey key = (SecretKey) keyStore.getKey(KEY_ALIAS, null);
-        if (key == null) {
-            KeyGenerator keyGenerator = KeyGenerator.getInstance("AES", "AndroidKeyStore");
-            keyGenerator.init(
-                    new KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                            .build());
-            key = keyGenerator.generateKey();
-        }
-        return key;
-    }
 
-    // Encrypt the string with AES/GCM
-    private byte[] encryptString(String input) throws Exception {
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-        cipher.init(Cipher.ENCRYPT_MODE, getKey());
 
-        byte[] iv = cipher.getIV();
-        byte[] encryptedData = cipher.doFinal(input.getBytes(StandardCharsets.UTF_8));
 
-        byte[] combined = new byte[iv.length + encryptedData.length];
-        System.arraycopy(iv, 0, combined, 0, iv.length);
-        System.arraycopy(encryptedData, 0, combined, iv.length, encryptedData.length);
 
-        return combined;
-    }
-
-    // Convert byte array to Base64
-    private String byteArrayToBase64(byte[] input) {
-        return Base64.encodeToString(input, Base64.DEFAULT);
-    }
 
     // Encrypt and store the data
     private void encryptAndStoreData() {
         String input = editTextA.getText().toString();
         try {
-            byte[] encryptedInput = encryptString(input);
-            String base64EncryptedInput = byteArrayToBase64(encryptedInput);
+            byte[] encryptedInput = BiometricUtil.encryptString(input);
+            String base64EncryptedInput = BiometricUtil.byteArrayToBase64(encryptedInput);
 
             // Create master key for encryption
             String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
@@ -221,8 +184,8 @@ public class ActivityA extends AppCompatActivity {
             System.arraycopy(encryptedString, 0, iv, 0, iv.length);
             System.arraycopy(encryptedString, iv.length, ciphertext, 0, ciphertext.length);
 
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            cipher.init(Cipher.DECRYPT_MODE, getKey(), new GCMParameterSpec(128, iv));
+            Cipher cipher = Cipher.getInstance(BiometricUtil.TRANSFORMATION);
+            cipher.init(Cipher.DECRYPT_MODE, BiometricUtil.getKey(), new GCMParameterSpec(128, iv));
 
             byte[] decryptedData = cipher.doFinal(ciphertext);
             String decryptedString = new String(decryptedData, StandardCharsets.UTF_8);
